@@ -1,0 +1,143 @@
+--[[
+    AUTO FISHING + TELEPORT + AUTO SELL (Rayfield)
+    Versi lengkap untuk loader
+--]]
+local player = game.Players.LocalPlayer
+local rs = game:GetService("ReplicatedStorage")
+local VirtualInput = game:GetService("VirtualInputManager")
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+    Name = "🎣 Auto Fishing & Tools",
+    ConfigurationSaving = { Enabled = true, FolderName = "AutoFishTools", FileName = "Config" }
+})
+
+local FishingTab = Window:CreateTab("🎣 Fishing")
+local TeleportTab = Window:CreateTab("📍 Teleport")
+local SellTab = Window:CreateTab("💰 Sell")
+
+-- Variabel
+local isFishing = false
+local fishingTask = nil
+local selectedRod = "SeaRod"
+local screenSize = workspace.CurrentCamera.ViewportSize
+local tapX = math.clamp(0, 0, screenSize.X)
+local tapY = math.clamp(-58, 10, screenSize.Y)
+local userSettings = { delay = 4, cooldown = 1 }
+
+-- Core functions
+local function tap(x, y)
+    VirtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
+    task.wait(0.05)
+    VirtualInput:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+local function getRod()
+    if player.Character then
+        local rod = player.Character:FindFirstChild(selectedRod)
+        if rod then return rod end
+    end
+    return player.Backpack:FindFirstChild(selectedRod)
+end
+
+local function castRod()
+    local rod = getRod()
+    if not rod then return false end
+    local castRemote = rod:FindFirstChild("CastToPosition")
+    if castRemote then
+        pcall(function() castRemote:FireServer() end)
+    else
+        tap(tapX, tapY)
+    end
+    return true
+end
+
+local function completeMiniGame()
+    local rod = getRod()
+    if not rod then return false end
+    local mg = rod:FindFirstChild("MiniGame")
+    if mg then
+        pcall(function() mg:FireServer("Complete") end)
+        return true
+    end
+    return false
+end
+
+local function fishingCycle()
+    if not isFishing then return end
+    castRod()
+    local waitTime = userSettings.delay + (math.random(-5, 5)/10)
+    task.wait(waitTime)
+    if not isFishing then return end
+    completeMiniGame()
+    task.wait(userSettings.cooldown)
+end
+
+-- Callbacks
+function _G.startFishing()
+    if isFishing then Rayfield:Notify({Title="Info", Content="Already running!"}) return end
+    local rod = getRod()
+    if not rod then Rayfield:Notify({Title="Error", Content=selectedRod.." not found!"}) return end
+    isFishing = true
+    fishingTask = task.spawn(function() while isFishing do fishingCycle() end end)
+    Rayfield:Notify({Title="Auto Fishing", Content="Started with "..selectedRod})
+end
+
+function _G.stopFishing()
+    if not isFishing then Rayfield:Notify({Title="Info", Content="Not running"}) return end
+    isFishing = false
+    if fishingTask then task.cancel(fishingTask); fishingTask = nil end
+    Rayfield:Notify({Title="Auto Fishing", Content="Stopped"})
+end
+
+function _G.selectSeaRod()   selectedRod = "SeaRod";   Rayfield:Notify({Title="Rod", Content="SeaRod selected"}) end
+function _G.selectRobotRod() selectedRod = "RobotRod"; Rayfield:Notify({Title="Rod", Content="RobotRod selected"}) end
+function _G.selectAngelRod() selectedRod = "AngelRod"; Rayfield:Notify({Title="Rod", Content="AngelRod selected"}) end
+
+-- UI Fishing
+FishingTab:CreateSection("Control")
+FishingTab:CreateButton({Name="START", Callback=_G.startFishing})
+FishingTab:CreateButton({Name="STOP", Callback=_G.stopFishing})
+FishingTab:CreateSection("Select Rod")
+FishingTab:CreateButton({Name="SeaRod", Callback=_G.selectSeaRod})
+FishingTab:CreateButton({Name="RobotRod", Callback=_G.selectRobotRod})
+FishingTab:CreateButton({Name="AngelRod", Callback=_G.selectAngelRod})
+FishingTab:CreateSection("Settings")
+FishingTab:CreateSlider({Name="Delay before Complete", Range={4,10}, Increment=0.5, Suffix="s", CurrentValue=userSettings.delay, Flag="delay", Callback=function(v) userSettings.delay=v end})
+FishingTab:CreateSlider({Name="Cooldown", Range={1,5}, Increment=0.5, Suffix="s", CurrentValue=userSettings.cooldown, Flag="cooldown", Callback=function(v) userSettings.cooldown=v end})
+
+-- Teleport
+local function teleportTo(pos)
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame = CFrame.new(pos)
+        Rayfield:Notify({Title="Teleport", Content=string.format("Moved to (%.0f,%.0f,%.0f)", pos.X,pos.Y,pos.Z)})
+    end
+end
+local locations = {
+    ["Kapal Luffy"] = Vector3.new(1937,189,-972),
+    ["Main Island"] = Vector3.new(1679,77,-976),
+    ["Shop Rod"] = Vector3.new(1351,106,-575)
+}
+for name, pos in pairs(locations) do
+    TeleportTab:CreateButton({Name=name, Callback=function() teleportTo(pos) end})
+end
+TeleportTab:CreateSection("Info")
+TeleportTab:CreateButton({Name="Current Position", Callback=function()
+    local pos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position
+    if pos then Rayfield:Notify({Title="Pos", Content=string.format("X:%.0f Y:%.0f Z:%.0f", pos.X,pos.Y,pos.Z)}) end
+end})
+
+-- Auto Sell
+local sellRemote = rs:FindFirstChild("JualIkanRemote")
+local function sell(cat)
+    if not sellRemote then Rayfield:Notify({Title="Error", Content="Remote not found"}) return end
+    pcall(function() sellRemote:FireServer(cat) end)
+    Rayfield:Notify({Title="Sell", Content="Sold: "..cat})
+end
+local sellCategories = {"Under50Kg","Under100Kg","Under400Kg","Under600Kg","All","Hand"}
+for _, cat in ipairs(sellCategories) do
+    SellTab:CreateButton({Name=cat, Callback=function() sell(cat) end})
+end
+
+Rayfield:LoadConfiguration()
+Rayfield:Notify({Title="Loaded", Content="All features ready. Select rod and START."})
