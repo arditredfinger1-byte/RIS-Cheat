@@ -1,31 +1,34 @@
---[[
-    AUTO FISHING + TELEPORT + AUTO SELL (Rayfield)
-    Versi lengkap untuk loader
---]]
 local player = game.Players.LocalPlayer
 local rs = game:GetService("ReplicatedStorage")
 local VirtualInput = game:GetService("VirtualInputManager")
 
+-- ========== LOAD RAYFIELD ==========
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
 local Window = Rayfield:CreateWindow({
-    Name = "🎣 Auto Fishing & Tools",
+    Name = "🎣 Pantai Voice Jemb",
     ConfigurationSaving = { Enabled = true, FolderName = "AutoFishTools", FileName = "Config" }
 })
 
+-- ========== BUAT TAB ==========
 local FishingTab = Window:CreateTab("🎣 Fishing")
 local TeleportTab = Window:CreateTab("📍 Teleport")
-local SellTab = Window:CreateTab("💰 Sell")
+local SellTab = Window:CreateTab("💰 Sell Fish")
 
--- Variabel
+-- ========== VARIABLES FISHING ==========
 local isFishing = false
 local fishingTask = nil
-local selectedRod = "SeaRod"
+local selectedRod = "AngelRod"  -- Bisa SeaRod, RobotRod, atau AngelRod
 local screenSize = workspace.CurrentCamera.ViewportSize
 local tapX = math.clamp(0, 0, screenSize.X)
 local tapY = math.clamp(-58, 10, screenSize.Y)
-local userSettings = { delay = 4, cooldown = 1 }
 
--- Core functions
+local userSettings = {
+    delay = 4,
+    cooldown = 1
+}
+
+-- ========== CORE FUNCTIONS FISHING ==========
 local function tap(x, y)
     VirtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
     task.wait(0.05)
@@ -66,78 +69,156 @@ end
 local function fishingCycle()
     if not isFishing then return end
     castRod()
-    local waitTime = userSettings.delay + (math.random(-5, 5)/10)
+    local waitTime = userSettings.delay + (math.random(-5, 5) / 10)
     task.wait(waitTime)
     if not isFishing then return end
     completeMiniGame()
     task.wait(userSettings.cooldown)
 end
 
--- Callbacks
+-- ========== FISHING CALLBACKS ==========
 function _G.startFishing()
-    if isFishing then Rayfield:Notify({Title="Info", Content="Already running!"}) return end
+    if isFishing then
+        Rayfield:Notify({Title = "Info", Content = "Already running!"})
+        return
+    end
     local rod = getRod()
-    if not rod then Rayfield:Notify({Title="Error", Content=selectedRod.." not found!"}) return end
+    if not rod then
+        Rayfield:Notify({Title = "Error", Content = selectedRod .. " not found!"})
+        return
+    end
     isFishing = true
-    fishingTask = task.spawn(function() while isFishing do fishingCycle() end end)
-    Rayfield:Notify({Title="Auto Fishing", Content="Started with "..selectedRod})
+    fishingTask = task.spawn(function()
+        while isFishing do fishingCycle() end
+    end)
+    Rayfield:Notify({Title = "Auto Fishing", Content = "Started with " .. selectedRod})
 end
 
 function _G.stopFishing()
-    if not isFishing then Rayfield:Notify({Title="Info", Content="Not running"}) return end
+    if not isFishing then
+        Rayfield:Notify({Title = "Info", Content = "Not running"})
+        return
+    end
     isFishing = false
     if fishingTask then task.cancel(fishingTask); fishingTask = nil end
-    Rayfield:Notify({Title="Auto Fishing", Content="Stopped"})
+    Rayfield:Notify({Title = "Auto Fishing", Content = "Stopped"})
 end
 
-function _G.selectSeaRod()   selectedRod = "SeaRod";   Rayfield:Notify({Title="Rod", Content="SeaRod selected"}) end
-function _G.selectRobotRod() selectedRod = "RobotRod"; Rayfield:Notify({Title="Rod", Content="RobotRod selected"}) end
-function _G.selectAngelRod() selectedRod = "AngelRod"; Rayfield:Notify({Title="Rod", Content="AngelRod selected"}) end
+function _G.selectSeaRod()
+    selectedRod = "SeaRod"
+    Rayfield:Notify({Title = "Rod Changed", Content = "Now using SeaRod"})
+end
 
--- UI Fishing
-FishingTab:CreateSection("Control")
-FishingTab:CreateButton({Name="START", Callback=_G.startFishing})
-FishingTab:CreateButton({Name="STOP", Callback=_G.stopFishing})
-FishingTab:CreateSection("Select Rod")
-FishingTab:CreateButton({Name="SeaRod", Callback=_G.selectSeaRod})
-FishingTab:CreateButton({Name="RobotRod", Callback=_G.selectRobotRod})
-FishingTab:CreateButton({Name="AngelRod", Callback=_G.selectAngelRod})
-FishingTab:CreateSection("Settings")
-FishingTab:CreateSlider({Name="Delay before Complete", Range={4,10}, Increment=0.5, Suffix="s", CurrentValue=userSettings.delay, Flag="delay", Callback=function(v) userSettings.delay=v end})
-FishingTab:CreateSlider({Name="Cooldown", Range={1,5}, Increment=0.5, Suffix="s", CurrentValue=userSettings.cooldown, Flag="cooldown", Callback=function(v) userSettings.cooldown=v end})
+function _G.selectRobotRod()
+    selectedRod = "RobotRod"
+    Rayfield:Notify({Title = "Rod Changed", Content = "Now using RobotRod"})
+end
 
--- Teleport
+function _G.selectAngelRod()
+    selectedRod = "AngelRod"
+    Rayfield:Notify({Title = "Rod Changed", Content = "Now using AngelRod"})
+end
+
+-- ========== UI FISHING TAB ==========
+FishingTab:CreateSection("🎮 Control")
+FishingTab:CreateButton({Name = "▶ START", Callback = _G.startFishing})
+FishingTab:CreateButton({Name = "⏹ STOP", Callback = _G.stopFishing})
+
+FishingTab:CreateSection("🎣 Select Rod")
+FishingTab:CreateButton({Name = "SeaRod", Callback = _G.selectSeaRod})
+FishingTab:CreateButton({Name = "RobotRod", Callback = _G.selectRobotRod})
+FishingTab:CreateButton({Name = "AngelRod", Callback = _G.selectAngelRod})  -- <-- TAMBAHAN
+
+FishingTab:CreateSection("⚙ Settings")
+FishingTab:CreateSlider({
+    Name = "Delay before Complete",
+    Range = {4, 10},
+    Increment = 0.5,
+    Suffix = "s",
+    CurrentValue = userSettings.delay,
+    Flag = "delay_setting",
+    Callback = function(v) userSettings.delay = v end
+})
+FishingTab:CreateSlider({
+    Name = "Cooldown between casts",
+    Range = {1, 5},
+    Increment = 0.5,
+    Suffix = "s",
+    CurrentValue = userSettings.cooldown,
+    Flag = "cooldown_setting",
+    Callback = function(v) userSettings.cooldown = v end
+})
+
+-- ========== FUNGSI TELEPORT ==========
 local function teleportTo(pos)
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        player.Character.HumanoidRootPart.CFrame = CFrame.new(pos)
-        Rayfield:Notify({Title="Teleport", Content=string.format("Moved to (%.0f,%.0f,%.0f)", pos.X,pos.Y,pos.Z)})
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = CFrame.new(pos)
+        Rayfield:Notify({Title = "Teleport", Content = string.format("Moved to (%.0f, %.0f, %.0f)", pos.X, pos.Y, pos.Z)})
+    else
+        Rayfield:Notify({Title = "Error", Content = "Character not found!"})
     end
 end
-local locations = {
-    ["Kapal Luffy"] = Vector3.new(1937,189,-972),
-    ["Main Island"] = Vector3.new(1679,77,-976),
-    ["Shop Rod"] = Vector3.new(1351,106,-575)
+
+local teleportLocations = {
+    ["🚢 Kapal Luffy"] = Vector3.new(1937, 189, -972),
+    ["🏝️ Main Island"] = Vector3.new(1679, 77, -976),
+    ["🎣 Shop Rod"] = Vector3.new(1351, 106, -575)
 }
-for name, pos in pairs(locations) do
-    TeleportTab:CreateButton({Name=name, Callback=function() teleportTo(pos) end})
-end
-TeleportTab:CreateSection("Info")
-TeleportTab:CreateButton({Name="Current Position", Callback=function()
-    local pos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position
-    if pos then Rayfield:Notify({Title="Pos", Content=string.format("X:%.0f Y:%.0f Z:%.0f", pos.X,pos.Y,pos.Z)}) end
-end})
 
--- Auto Sell
-local sellRemote = rs:FindFirstChild("JualIkanRemote")
-local function sell(cat)
-    if not sellRemote then Rayfield:Notify({Title="Error", Content="Remote not found"}) return end
-    pcall(function() sellRemote:FireServer(cat) end)
-    Rayfield:Notify({Title="Sell", Content="Sold: "..cat})
-end
-local sellCategories = {"Under50Kg","Under100Kg","Under400Kg","Under600Kg","All","Hand"}
-for _, cat in ipairs(sellCategories) do
-    SellTab:CreateButton({Name=cat, Callback=function() sell(cat) end})
+-- ========== UI TELEPORT TAB ==========
+TeleportTab:CreateSection("📍 Teleport Locations")
+for name, pos in pairs(teleportLocations) do
+    TeleportTab:CreateButton({
+        Name = name,
+        Callback = function() teleportTo(pos) end
+    })
 end
 
+TeleportTab:CreateSection("ℹ️ Info")
+TeleportTab:CreateButton({
+    Name = "📍 Current Position",
+    Callback = function()
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local pos = char.HumanoidRootPart.Position
+            Rayfield:Notify({Title = "Current Position", Content = string.format("X: %.0f, Y: %.0f, Z: %.0f", pos.X, pos.Y, pos.Z)})
+        end
+    end
+})
+
+-- ========== FUNGSI AUTO SELL ==========
+local JualIkanRemote = rs:FindFirstChild("JualIkanRemote")
+
+local function sellFish(category)
+    if not JualIkanRemote then
+        Rayfield:Notify({Title = "Error", Content = "JualIkanRemote not found!"})
+        return
+    end
+    pcall(function()
+        JualIkanRemote:FireServer(category)
+    end)
+    Rayfield:Notify({Title = "Sell Fish", Content = "Sold: " .. category})
+end
+
+function _G.sellUnder50()  sellFish("Under50Kg") end
+function _G.sellUnder100() sellFish("Under100Kg") end
+function _G.sellUnder400() sellFish("Under400Kg") end
+function _G.sellUnder600() sellFish("Under600Kg") end
+function _G.sellAll()      sellFish("All") end
+function _G.sellHand()     sellFish("Hand") end
+
+-- ========== UI SELL TAB ==========
+SellTab:CreateSection("🎣 Auto Sell Fish")
+SellTab:CreateButton({Name = "📦 Under 50Kg", Callback = _G.sellUnder50})
+SellTab:CreateButton({Name = "📦 Under 100Kg", Callback = _G.sellUnder100})
+SellTab:CreateButton({Name = "📦 Under 400Kg", Callback = _G.sellUnder400})
+SellTab:CreateButton({Name = "📦 Under 600Kg", Callback = _G.sellUnder600})
+SellTab:CreateButton({Name = "🔥 All Fish", Callback = _G.sellAll})
+SellTab:CreateButton({Name = "✋ Hand", Callback = _G.sellHand})
+
+-- ========== LOAD CONFIG ==========
 Rayfield:LoadConfiguration()
-Rayfield:Notify({Title="Loaded", Content="All features ready. Select rod and START."})
+
+-- Notifikasi awal
+Rayfield:Notify({Title = "Loaded", Content = "Pantai Voice | Risdan Septama"})
